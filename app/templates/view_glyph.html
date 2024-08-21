@@ -1,0 +1,21 @@
+{% extends "layout.html" %} {% block content %}
+<h1>Glyph {{ glyph.glyph_id }}</h1>
+<img src="{{ url_for('static', filename='assets/glyphs/' + glyph.glyph_id + '.svg') }}" alt="Glyph {{ glyph.glyph_id }}" />
+
+<h2>Submit Your Guess</h2>
+<form action="{{ url_for('main.view_glyph', glyph_id=glyph.glyph_id) }}" method="POST">
+    <div class="form-group">
+        <label for="guess">Your Guess</label>
+        <input type="text" name="guess" id="guess" required />
+        <input type="hidden" name="riddle_id" value="{{ glyph.id }}" />
+    </div>
+    <button type="submit" class="btn btn-primary">Submit Guess</button>
+</form>
+
+<h2>Previous Guesses</h2>
+<ul>
+    {% for guess in glyph.guesses %}
+    <li>{{ guess.guess_text }} ({{ guess.timestamp }})</li>
+    {% endfor %}
+</ul>
+{% endblock %}

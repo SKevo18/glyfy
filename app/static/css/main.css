@@ -1,0 +1,30 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.nav {
+    padding: 10px;
+    background-color: #6200ea;
+    color: #fff;
+}
+
+.container {
+    padding: 20px;
+}
+
+.glyph-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+}
+
+.glyph-grid img {
+    width: 100%;
+    height: auto;
+}
+
+.pagination {
+    margin-top: 20px;
+}
