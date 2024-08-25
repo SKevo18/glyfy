@@ -1,13 +1,33 @@
 import os
 
 from flask import Blueprint, render_template, redirect, url_for, request, flash
-from app import db
-from app.models import Glyph
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from glyfy.app import db
+from glyfy.models import Glyph
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+auth = HTTPBasicAuth()
+
+admin_heslo = os.getenv("ADMIN_HESLO")
+if not admin_heslo:
+    raise RuntimeError("`ADMIN_HESLO` nie je v env premenných, nastav ho v súbore `.env`.")
+
+USERS = {
+    "admin": generate_password_hash(admin_heslo),
+}
+
+@auth.verify_password
+def verify_password(username, password):
+    user = USERS.get(username)
+
+    if user and check_password_hash(user, password):
+        return username
 
 
 @admin_bp.route("/glyphs")
+@auth.login_required
 def glyphs():
     page = request.args.get("page", 1, type=int)
     glyphs = Glyph.query.paginate(page=page, per_page=20)
@@ -15,6 +35,7 @@ def glyphs():
 
 
 @admin_bp.route("/glyphs/add", methods=["GET", "POST"])
+@auth.login_required
 def add_glyph():
     if request.method == "POST":
         glyph_id = request.form["glyph_id"]
@@ -23,7 +44,7 @@ def add_glyph():
 
         svg_file = request.files["svg_file"]
         if svg_file and svg_file.filename:
-            filepath = os.path.join("app/static/assets/glyphs", f"{glyph.glyph_id}.svg")
+            filepath = os.path.join("glyfy/static/assets/glyphs", f"{glyph.glyph_id}.svg")
             svg_file.save(filepath)
 
         db.session.add(glyph)
@@ -35,10 +56,11 @@ def add_glyph():
 
 
 @admin_bp.route("/glyphs/delete/<int:glyph_id>", methods=["POST"])
+@auth.login_required
 def delete_glyph(glyph_id):
     glyph = Glyph.query.get_or_404(glyph_id)
 
-    asset = os.path.join("app/static/assets/glyphs", f"{glyph.glyph_id}.svg")
+    asset = os.path.join("glyfy/static/assets/glyphs", f"{glyph.glyph_id}.svg")
     if os.path.exists(asset):
         os.unlink(asset)
 

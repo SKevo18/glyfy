@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block title %}{% trans %}Domov - Glyfy{% endtrans %}{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6 text-green-700">{% trans %}Glyfy - Hádaj znak{% endtrans %}</h1>
+
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+    {% for glyph in glyphs.items %}
+        <a href="{{ url_for('main.view_glyph', glyph_id=glyph.glyph_id) }}" class="bg-white p-4 shadow-lg rounded-lg hover:shadow-xl transition-shadow">
+            <img src="{{ url_for('static', filename='assets/glyphs/' + glyph.glyph_id + '.svg') }}" alt="Glyph {{ glyph.glyph_id }}" class="w-full h-auto">
+        </a>
+    {% endfor %}
+</div>
+
+<div class="mt-8 flex justify-between">
+    {% if glyphs.has_prev %}
+        <a href="{{ url_for('main.index', page=glyphs.prev_num) }}" class="text-green-600 hover:text-green-400">
+            {% trans %}Predošlá{% endtrans %}
+        </a>
+    {% endif %}
+    {% if glyphs.has_next %}
+        <a href="{{ url_for('main.index', page=glyphs.next_num) }}" class="text-green-600 hover:text-green-400">
+            {% trans %}Nasledujúca{% endtrans %}
+        </a>
+    {% endif %}
+</div>
+{% endblock %}

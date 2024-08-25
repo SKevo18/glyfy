@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block title %}{% trans %}Spravovať znaky - Glyfy{% endtrans %}{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6 text-green-700">{% trans %}Spravovať znaky{% endtrans %}</h1>
+
+<a href="{{ url_for('admin.add_glyph') }}" class="bg-green-600 text-white py-2 px-4 rounded shadow-md hover:bg-green-500">
+    {% trans %}Pridať nový znak{% endtrans %}
+</a>
+
+<table class="table-auto w-full mt-6 bg-white shadow-lg rounded-lg overflow-hidden">
+    <thead class="bg-green-600 text-white">
+        <tr>
+            <th class="px-4 py-2">{% trans %}ID znaku{% endtrans %}</th>
+            <th class="px-4 py-2">{% trans %}Akcie{% endtrans %}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for glyph in glyphs.items %}
+        <tr class="border-t">
+            <td class="px-4 py-2">{{ glyph.glyph_id }}</td>
+            <td class="px-4 py-2">
+                <form action="{{ url_for('admin.delete_glyph', glyph_id=glyph.id) }}" method="POST" onsubmit="return confirm('{% trans %}Si si istý že chceš zmazať tento znak a všetky odhady?{% endtrans %}');">
+                    <button type="submit" class="bg-red-600 text-white py-1 px-2 rounded shadow-md hover:bg-red-500">
+                        {% trans %}Zmazať{% endtrans %}
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="mt-8 flex justify-between">
+    {% if glyphs.has_prev %}
+        <a href="{{ url_for('admin.glyphs', page=glyphs.prev_num) }}" class="text-green-600 hover:text-green-400">
+            {% trans %}Predošlá{% endtrans %}
+        </a>
+    {% endif %}
+    {% if glyphs.has_next %}
+        <a href="{{ url_for('admin.glyphs', page=glyphs.next_num) }}" class="text-green-600 hover:text-green-400">
+            {% trans %}Nasledujúca{% endtrans %}
+        </a>
+    {% endif %}
+</div>
+{% endblock %}
