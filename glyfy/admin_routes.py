@@ -30,7 +30,8 @@ def verify_password(username, password):
 @auth.login_required
 def glyphs():
     page = request.args.get("page", 1, type=int)
-    glyphs = Glyph.query.paginate(page=page, per_page=20)
+    glyphs = db.paginate(db.select(Glyph).order_by(Glyph.unicode), page=page)
+
     return render_template("admin/glyphs.html", glyphs=glyphs)
 
 
@@ -58,7 +59,7 @@ def add_glyph():
 @admin_bp.route("/glyphs/delete/<int:glyph_id>", methods=["POST"])
 @auth.login_required
 def delete_glyph(glyph_id):
-    glyph = Glyph.query.get_or_404(glyph_id)
+    glyph = db.get_or_404(Glyph, glyph_id)
 
     asset = os.path.join("glyfy/static/assets/glyphs", f"{glyph.glyph_id}.svg")
     if os.path.exists(asset):

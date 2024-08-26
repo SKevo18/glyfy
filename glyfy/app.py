@@ -7,7 +7,9 @@ from config import Config
 app = Flask(__name__)
 app.config.from_object(Config)
 
-db = SQLAlchemy(app)
+from glyfy.models import Base  # noqa: E402
+
+db = SQLAlchemy(app, model_class=Base)
 babel = Babel(app)
 
 # circular
