@@ -9,19 +9,25 @@
     {% trans %}Pridať nový znak{% endtrans %}
 </a>
 
-<table class="table-auto w-full mt-6 bg-white shadow-lg rounded-lg overflow-hidden">
+<table class="table-auto mt-6 bg-white shadow-lg rounded-lg overflow-hidden">
     <thead class="bg-green-600 text-white">
         <tr>
-            <th class="px-4 py-2">{% trans %}ID znaku{% endtrans %}</th>
+            <th class="px-4 py-2 w-64">{% trans %}ID znaku{% endtrans %}</th>
             <th class="px-4 py-2">{% trans %}Akcie{% endtrans %}</th>
         </tr>
     </thead>
     <tbody>
         {% for glyph in glyphs.items %}
         <tr class="border-t">
-            <td class="px-4 py-2">{{ glyph.glyph_id }}</td>
-            <td class="px-4 py-2">
-                <form action="{{ url_for('admin.delete_glyph', glyph_id=glyph.id) }}" method="POST" onsubmit="return confirm('{% trans %}Si si istý že chceš zmazať tento znak a všetky odhady?{% endtrans %}');">
+            <td class="flex gap-2 items-center px-4 py-2 w-64">
+                <img src="{{ url_for('static', filename='glyphs/' + glyph.glyph_id + '.svg') }}" alt="Glyph {{ glyph.glyph_id }}" class="w-8 h-8">
+                <span>{{ glyph.glyph_id }}</span>
+            </td>
+            <td class="text-right px-4 py-2">
+                <a href="{{ url_for('admin.edit_glyph', glyph_id=glyph.id) }}" class="bg-blue-600 text-white py-1 px-2 rounded shadow-md hover:bg-blue-500 mr-2">
+                    {% trans %}Upraviť{% endtrans %}
+                </a>
+                <form action="{{ url_for('admin.delete_glyph', glyph_id=glyph.id) }}" method="POST" onsubmit="return confirm('{% trans %}Si si istý že chceš zmazať tento znak a všetky odhady?{% endtrans %}');" class="inline">
                     <button type="submit" class="bg-red-600 text-white py-1 px-2 rounded shadow-md hover:bg-red-500">
                         {% trans %}Zmazať{% endtrans %}
                     </button>

@@ -3,4 +3,4 @@ __pycache__/
 .env
 
 instance/
-**/static/assets/glyphs
+**/glyphs/*.svg

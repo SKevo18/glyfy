@@ -8,7 +8,7 @@
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
     {% for glyph in glyphs.items %}
         <a href="{{ url_for('main.view_glyph', glyph_id=glyph.glyph_id) }}" class="bg-white p-4 shadow-lg rounded-lg hover:shadow-xl transition-shadow">
-            <img src="{{ url_for('static', filename='assets/glyphs/' + glyph.glyph_id + '.svg') }}" alt="Glyph {{ glyph.glyph_id }}" class="w-full h-auto">
+            <img src="{{ url_for('static', filename='glyphs/' + glyph.glyph_id + '.svg') }}" alt="Glyph {{ glyph.glyph_id }}" class="w-full h-auto">
         </a>
     {% endfor %}
 </div>

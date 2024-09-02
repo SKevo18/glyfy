@@ -5,7 +5,7 @@
 {% block content %}
 <h1 class="text-3xl font-bold mb-6 text-green-700">{{ glyph.glyph_id }}</h1>
 
-<img src="{{ url_for('static', filename='assets/glyphs/' + glyph.glyph_id + '.svg') }}" alt="Glyph {{ glyph.glyph_id }}" class="w-32 h-32 mx-auto mb-6 shadow-lg">
+<img src="{{ url_for('static', filename='glyphs/' + glyph.glyph_id + '.svg') }}" alt="Glyph {{ glyph.glyph_id }}" class="w-32 h-32 mx-auto mb-6 shadow-lg">
 
 <h2 class="text-xl font-semibold mb-4">{% trans %}Odoslať odhad{% endtrans %}</h2>
 
@@ -20,7 +20,7 @@
     </button>
 </form>
 
-<h2 class="text-xl font-semibold mt-8 mb-4">{% trans %}Odhady ostatných{% endtrans %}</h2>
+<h2 class="text-xl font-semibold mt-8 mb-4">{% trans %}Všetky odhady pre tento symbol{% endtrans %}</h2>
 <ul class="bg-white p-6 rounded-lg shadow-md">
     {% for guess in glyph.guesses %}
     <li class="border-b py-2">{{ guess.guess_text }} <span class="text-gray-500 text-sm">({{ guess.timestamp }})</span></li>
