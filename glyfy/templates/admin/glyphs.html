@@ -1,53 +1,79 @@
 {% extends "layout.html" %}
+{% from "macros/pagination.html" import render_pagination %}
 
 {% block title %}{% trans %}Spravovať znaky - Glyfy{% endtrans %}{% endblock %}
 
 {% block content %}
 <h1 class="text-3xl font-bold mb-6 text-green-700">{% trans %}Spravovať znaky{% endtrans %}</h1>
 
-<a href="{{ url_for('admin.add_glyph') }}" class="bg-green-600 text-white py-2 px-4 rounded shadow-md hover:bg-green-500">
+<a href="{{ url_for('admin.add_glyph') }}" class="inline-block bg-green-600 text-white py-2 px-4 rounded shadow-md hover:bg-green-500 mb-6 mr-4">
     {% trans %}Pridať nový znak{% endtrans %}
 </a>
+<a href="{{ url_for('admin.banned_ips') }}" class="inline-block bg-yellow-600 text-white py-2 px-4 rounded shadow-md hover:bg-yellow-500 mb-6">
+    {% trans %}Spravovať zakázané IP{% endtrans %}
+</a>
 
-<table class="table-auto mt-6 bg-white shadow-lg rounded-lg overflow-hidden">
-    <thead class="bg-green-600 text-white">
-        <tr>
-            <th class="px-4 py-2 w-64">{% trans %}ID znaku{% endtrans %}</th>
-            <th class="px-4 py-2">{% trans %}Akcie{% endtrans %}</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for glyph in glyphs.items %}
-        <tr class="border-t">
-            <td class="flex gap-2 items-center px-4 py-2 w-64">
-                <img src="{{ url_for('static', filename='glyphs/' + glyph.glyph_id + '.svg') }}" alt="Glyph {{ glyph.glyph_id }}" class="w-8 h-8">
-                <span>{{ glyph.glyph_id }}</span>
-            </td>
-            <td class="text-right px-4 py-2">
-                <a href="{{ url_for('admin.edit_glyph', glyph_id=glyph.id) }}" class="bg-blue-600 text-white py-1 px-2 rounded shadow-md hover:bg-blue-500 mr-2">
-                    {% trans %}Upraviť{% endtrans %}
-                </a>
-                <form action="{{ url_for('admin.delete_glyph', glyph_id=glyph.id) }}" method="POST" onsubmit="return confirm('{% trans %}Si si istý že chceš zmazať tento znak a všetky odhady?{% endtrans %}');" class="inline">
-                    <button type="submit" class="bg-red-600 text-white py-1 px-2 rounded shadow-md hover:bg-red-500">
-                        {% trans %}Zmazať{% endtrans %}
-                    </button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<div class="mt-8 flex justify-between">
-    {% if glyphs.has_prev %}
-        <a href="{{ url_for('admin.glyphs', page=glyphs.prev_num) }}" class="text-green-600 hover:text-green-400">
-            {% trans %}Predošlá{% endtrans %}
-        </a>
-    {% endif %}
-    {% if glyphs.has_next %}
-        <a href="{{ url_for('admin.glyphs', page=glyphs.next_num) }}" class="text-green-600 hover:text-green-400">
-            {% trans %}Nasledujúca{% endtrans %}
-        </a>
-    {% endif %}
-</div>
+{% if glyphs.items %}
+    <div class="overflow-x-auto">
+        <table class="table-auto w-full mt-6 bg-white shadow-lg rounded-lg overflow-hidden">
+            <thead class="bg-green-600 text-white">
+                <tr>
+                    <th class="px-4 py-2 w-64 text-left">{% trans %}ID znaku{% endtrans %}</th>
+                    <th class="px-4 py-2">{% trans %}Unicode{% endtrans %}</th>
+                    <th class="px-4 py-2">{% trans %}Vytvorené{% endtrans %}</th>
+                    <th class="px-4 py-2">{% trans %}Stav{% endtrans %}</th>
+                    <th class="px-4 py-2 text-right">{% trans %}Akcie{% endtrans %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for glyph in glyphs.items %}
+                <tr class="text-center border-t {% if glyph.is_deleted %}bg-red-100{% endif %}">
+                    <td class="flex gap-2 items-center px-4 py-2 w-64">
+                        <img src="{{ url_for('static', filename='glyphs/' + glyph.glyph_id + '.svg') }}" alt="Glyph {{ glyph.glyph_id }}" class="w-8 h-8">
+                        <span>{{ glyph.glyph_id }}</span>
+                    </td>
+                    <td class="px-4 py-2">{{ glyph.unicode }}</td>
+                    <td class="px-4 py-2">{{ glyph.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td class="px-4 py-2">
+                        {% if glyph.is_deleted %}
+                            <span class="bg-red-500 text-white px-2 py-1 rounded-full text-xs">{% trans %}Vymazané{% endtrans %}</span>
+                        {% else %}
+                            <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs">{% trans %}Aktívne{% endtrans %}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right px-4 py-2">
+                        <div class="flex justify-end space-x-2">
+                            <a href="{{ url_for('admin.view_guesses', glyph_id=glyph.id) }}" class="bg-blue-600 text-white py-1 px-2 rounded shadow-md hover:bg-blue-500">
+                                {% trans %}Odhady{% endtrans %}
+                            </a>
+                            <a href="{{ url_for('admin.edit_glyph', glyph_id=glyph.id) }}" class="bg-blue-600 text-white py-1 px-2 rounded shadow-md hover:bg-blue-500">
+                                {% trans %}Upraviť{% endtrans %}
+                            </a>
+                            <form action="{{ url_for('admin.toggle_delete_glyph', glyph_id=glyph.id) }}" method="POST" class="inline">
+                                <button type="submit" class="{% if glyph.is_deleted %}bg-green-600{% else %}bg-red-600{% endif %} text-white py-1 px-2 rounded shadow-md hover:{% if glyph.is_deleted %}bg-green-500{% else %}bg-red-500{% endif %}">
+                                    {% if glyph.is_deleted %}
+                                        {% trans %}Obnoviť{% endtrans %}
+                                    {% else %}
+                                        {% trans %}Vymazať{% endtrans %}
+                                    {% endif %}
+                                </button>
+                            </form>
+                            {% if glyph.is_deleted %}
+                            <form action="{{ url_for('admin.permanent_delete_glyph', glyph_id=glyph.id) }}" method="POST" class="inline" onsubmit="return confirm('{% trans %}Ste si istý, že chcete trvalo vymazať tento glyf? Táto akcia je nezvratná a odstráni všetky súvisiace odhady.{% endtrans %}');">
+                                <button type="submit" class="bg-red-800 text-white py-1 px-2 rounded shadow-md hover:bg-red-700">
+                                    {% trans %}Trvalo vymazať{% endtrans %}
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {{ render_pagination(glyphs, 'admin.glyphs') }}
+{% else %}
+    <p class="text-center text-gray-600 mt-6">{% trans %}Momentálne nie sú k dispozícii žiadne glyfy.{% endtrans %}</p>
+{% endif %}
 {% endblock %}

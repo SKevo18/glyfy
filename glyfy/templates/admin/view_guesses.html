@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% from "macros/pagination.html" import render_pagination %}
+
+{% block title %}{% trans %}Odhady pre znak{% endtrans %} {{ glyph.glyph_id }} - Glyfy{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6 text-green-700">{% trans %}Odhady pre znak{% endtrans %} {{ glyph.glyph_id }}</h1>
+
+<a href="{{ url_for('admin.glyphs') }}" class="inline-block bg-green-600 text-white py-2 px-4 rounded shadow-md hover:bg-green-500 mb-6">
+    {% trans %}Späť na zoznam znakov{% endtrans %}
+</a>
+
+{% if guesses.items %}
+    <div class="overflow-x-auto">
+        <table class="table-auto w-full mt-6 bg-white shadow-lg rounded-lg overflow-hidden">
+            <thead class="bg-green-600 text-white">
+                <tr>
+                    <th class="px-4 py-2 text-left">{% trans %}Odhad{% endtrans %}</th>
+                    <th class="px-4 py-2">{% trans %}Čas{% endtrans %}</th>
+                    <th class="px-4 py-2">{% trans %}IP Adresa{% endtrans %}</th>
+                    <th class="px-4 py-2">{% trans %}Stav{% endtrans %}</th>
+                    <th class="px-4 py-2 text-right">{% trans %}Akcie{% endtrans %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for guess in guesses.items %}
+                <tr class="border-t text-center {% if guess.is_deleted %}bg-red-100{% endif %}">
+                    <td class="px-4 py-2 text-left italic">{{ guess.guess_text }}</td>
+                    <td class="px-4 py-2">{{ guess.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td class="px-4 py-2">{{ guess.ip_address }}</td>
+                    <td class="px-4 py-2">
+                        {% if guess.is_deleted %}
+                            <span class="bg-red-500 text-white px-2 py-1 rounded-full text-xs">{% trans %}Vymazané{% endtrans %}</span>
+                        {% else %}
+                            <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs">{% trans %}Aktívne{% endtrans %}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right px-4 py-2 text-right">
+                        <form action="{{ url_for('admin.toggle_delete_guess', guess_id=guess.id) }}" method="POST" class="inline">
+                            <button type="submit" class="{% if guess.is_deleted %}bg-green-600{% else %}bg-red-600{% endif %} text-white py-1 px-2 rounded shadow-md hover:{% if guess.is_deleted %}bg-green-500{% else %}bg-red-500{% endif %} mr-2">
+                                {% if guess.is_deleted %}
+                                    {% trans %}Obnoviť{% endtrans %}
+                                {% else %}
+                                    {% trans %}Vymazať{% endtrans %}
+                                {% endif %}
+                            </button>
+                        </form>
+                        {% if guess.is_deleted %}
+                        <form action="{{ url_for('admin.permanent_delete_guess', guess_id=guess.id) }}" method="POST" class="inline" onsubmit="return confirm('{% trans %}Ste si istý, že chcete trvalo vymazať tento odhad? Táto akcia je nezvratná.{% endtrans %}');">
+                            <button type="submit" class="bg-red-800 text-white py-1 px-2 rounded shadow-md hover:bg-red-700">
+                                {% trans %}Trvalo vymazať{% endtrans %}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {{ render_pagination(guesses, 'admin.view_guesses', glyph_id=glyph.id) }}
+{% else %}
+    <p class="text-center text-gray-600 mt-6">{% trans %}Pre tento znak zatiaľ nie sú žiadne odhady.{% endtrans %}</p>
+{% endif %}
+{% endblock %}

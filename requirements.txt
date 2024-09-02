@@ -2,4 +2,6 @@ Flask
 Flask-SQLAlchemy
 Flask-Babel
 Flask-HTTPAuth
+
+unidecode
 python-dotenv

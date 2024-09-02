@@ -1,0 +1,33 @@
+{% macro render_pagination(pagination, endpoint) %}
+  {% if pagination.pages > 1 %}
+    <div class="flex justify-center items-center mt-4 space-x-2">
+      {% if pagination.has_prev %}
+        <a href="{{ url_for(endpoint, page=pagination.prev_num, **kwargs) }}" class="px-3 py-2 bg-white rounded-lg shadow-md hover:bg-gray-100">
+          &larr;
+        </a>
+      {% endif %}
+
+      {% for page in pagination.iter_pages() %}
+        {% if page %}
+          {% if page != pagination.page %}
+            <a href="{{ url_for(endpoint, page=page, **kwargs) }}" class="px-3 py-2 bg-white rounded-lg shadow-md hover:bg-gray-100">
+              {{ page }}
+            </a>
+          {% else %}
+            <span class="px-3 py-2 bg-green-600 text-white rounded-lg shadow-md">
+              {{ page }}
+            </span>
+          {% endif %}
+        {% else %}
+          <span class="px-3 py-2">...</span>
+        {% endif %}
+      {% endfor %}
+
+      {% if pagination.has_next %}
+        <a href="{{ url_for(endpoint, page=pagination.next_num, **kwargs) }}" class="px-3 py-2 bg-white rounded-lg shadow-md hover:bg-gray-100">
+          &rarr;
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endmacro %}

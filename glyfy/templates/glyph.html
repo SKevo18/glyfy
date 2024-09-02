@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% from "macros/pagination.html" import render_pagination %}
+
+{% block title %}{{ glyph.glyph_id }} - Glyfy{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row items-center gap-2 mb-12">
+    <img src="{{ url_for('static', filename='glyphs/' + glyph.glyph_id + '.svg') }}" alt="Glyph {{ glyph.glyph_id }}" class="h-64 mx-auto mb-6 shadow-lg">
+
+    <form action="{{ url_for('main.view_glyph', glyph_id=glyph.glyph_id) }}" method="POST" class="bg-white p-6 rounded-lg shadow-md w-full md:w-1/2">
+        <h2 class="text-xl font-semibold mb-4">{% trans %}Odoslať odhad{% endtrans %}</h2>
+
+        <div class="mb-4">
+            <label for="guess" class="block text-gray-700">{% trans %}Váš odhad{% endtrans %}</label>
+            <input type="text" name="guess" id="guess" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm" required>
+            <input type="hidden" name="glyph_id" value="{{ glyph.id }}">
+        </div>
+        <p class="text-sm text-gray-600 mb-4">
+            {% trans %}<b>Poznámka:</b> Váš odhad bude pred odoslaním normalizovaný. Všetky písmená budú prevedené na malé, diakritika bude odstránená a všetky nealfanumerické znaky (okrem medzery) budú vynechané.{% endtrans %}
+        </p>
+        <button type="submit" class="bg-green-600 text-white py-2 px-4 rounded shadow-md hover:bg-green-500">
+            {% trans %}Odoslať odhad{% endtrans %}
+        </button>
+    </form>
+</div>
+
+<h2 class="text-center text-xl font-semibold mt-8 mb-4">{% trans %}Všetky odhady pre tento symbol{% endtrans %}</h2>
+
+{% if guesses.items %}
+    <div class="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto">
+        <ul class="divide-y divide-gray-200">
+            {% for guess in guesses.items %}
+            {% if not guess.is_deleted %}
+            <li class="py-3 flex justify-between items-center">
+                <span class="text-gray-900">{{ guess.guess_text }}</span>
+                <div class="flex items-center">
+                    <span class="text-sm text-gray-500 mr-2">{{ guess.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                    {% if guess.ip_address == user_ip %}
+                        <form action="{{ url_for('main.delete_guess', guess_id=guess.id) }}" method="POST" onsubmit="return confirm('{% trans %}Si si istý že chceš zmazať tento odhad?{% endtrans %}');">
+                            <button type="submit" class="text-red-600 hover:text-red-800">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+    {{ render_pagination(guesses, 'main.view_glyph', glyph_id=glyph.glyph_id) }}
+{% else %}
+    <p class="text-center text-gray-600 bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto">
+        {% trans %}Pre tento symbol zatiaľ nie sú žiadne odhady.{% endtrans %}
+    </p>
+{% endif %}
+{% endblock %}

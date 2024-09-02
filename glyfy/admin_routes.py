@@ -1,13 +1,17 @@
 import typing as t
 import os
+import re
+
 from pathlib import Path
+from sqlalchemy.exc import IntegrityError
 
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from glyfy.app import db
-from glyfy.models import Glyph
+from glyfy.models import Glyph, Guess, BannedIP
+from glyfy.utils import get_client_ip
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 auth = HTTPBasicAuth()
@@ -36,7 +40,6 @@ def verify_password(username, password) -> t.Optional[str]:
 def glyphs():
     page = request.args.get("page", 1, type=int)
     glyphs = db.paginate(db.select(Glyph).order_by(Glyph.unicode), page=page)
-
     return render_template("admin/glyphs.html", glyphs=glyphs)
 
 
@@ -46,17 +49,45 @@ def add_glyph():
     if request.method == "POST":
         glyph_id = request.form["glyph_id"]
         unicode = request.form["unicode"]
-        glyph = Glyph(glyph_id=glyph_id, unicode=unicode)  # type: ignore
+
+        if not re.match(r"^[a-zA-Z0-9]+$", glyph_id):
+            flash("ID glyfu môže obsahovať iba alfanumerické znaky.", "error")
+            return render_template("admin/add_glyph.html")
+
+        try:
+            unicode_value = int(unicode)
+            if unicode_value <= 0:
+                raise ValueError
+        except ValueError:
+            flash("Unicode hodnota musí byť kladné celé číslo väčšie ako 0.", "error")
+            return render_template("admin/add_glyph.html")
+
+        glyph = Glyph(glyph_id=glyph_id, unicode=unicode_value)
 
         svg_file = request.files["svg_file"]
         if svg_file and svg_file.filename:
             filepath = GLYPHS_PATH / f"{glyph_id}.svg"
             svg_file.save(filepath)
 
-        db.session.add(glyph)
-        db.session.commit()
-        flash("Symbol bol úspešne pridaný", "success")
-        return redirect(url_for("admin.glyphs"))
+        try:
+            db.session.add(glyph)
+            db.session.commit()
+
+            flash("Symbol bol úspešne pridaný", "success")
+            return redirect(url_for("admin.glyphs"))
+
+        except IntegrityError as e:
+            db.session.rollback()
+
+            if "glyph_id" in str(e.orig):
+                flash("Chyba: ID glyfu už existuje. Prosím, zvoľte iné ID.", "error")
+            elif "unicode" in str(e.orig):
+                flash(
+                    "Chyba: Unicode hodnota už existuje. Prosím, zvoľte inú hodnotu.",
+                    "error",
+                )
+            else:
+                flash("Chyba pri pridávaní glyfu. Skúste to znova.", "error")
 
     return render_template("admin/add_glyph.html")
 
@@ -73,15 +104,30 @@ def edit_glyph(glyph_id):
         svg_file = request.files["svg_file"]
         if svg_file and svg_file.filename:
             old_filepath = GLYPHS_PATH / f"{glyph.glyph_id}.svg"
-            if os.path.exists(old_filepath):
-                os.unlink(old_filepath)
+            if old_filepath.exists():
+                old_filepath.unlink()
 
             new_filepath = GLYPHS_PATH / f"{glyph.glyph_id}.svg"
             svg_file.save(new_filepath)
 
-        db.session.commit()
-        flash("Symbol bol úspešne upravený", "success")
-        return redirect(url_for("admin.glyphs"))
+        try:
+            db.session.commit()
+
+            flash("Symbol bol úspešne upravený", "success")
+            return redirect(url_for("admin.glyphs"))
+
+        except IntegrityError as e:
+            db.session.rollback()
+
+            if "glyph_id" in str(e.orig):
+                flash("Chyba: ID glyfu už existuje. Prosím, zvoľte iné ID.", "error")
+            elif "unicode" in str(e.orig):
+                flash(
+                    "Chyba: Unicode hodnota už existuje. Prosím, zvoľte inú hodnotu.",
+                    "error",
+                )
+            else:
+                flash("Chyba pri úprave glyfu. Skúste to znova.", "error")
 
     return render_template("admin/edit_glyph.html", glyph=glyph)
 
@@ -92,11 +138,93 @@ def delete_glyph(glyph_id):
     glyph = db.get_or_404(Glyph, glyph_id)
 
     asset = GLYPHS_PATH / f"{glyph.glyph_id}.svg"
-    if os.path.exists(asset):
-        os.unlink(asset)
+    if asset.exists():
+        asset.unlink()
 
     db.session.delete(glyph)
     db.session.commit()
 
     flash("Symbol bol úspešne vymazaný", "success")
     return redirect(url_for("admin.glyphs"))
+
+
+@admin_bp.route("/glyphs/<int:glyph_id>/guesses")
+@auth.login_required
+def view_guesses(glyph_id):
+    glyph = db.get_or_404(Glyph, glyph_id)
+    page = request.args.get("page", 1, type=int)
+
+    guesses = db.paginate(
+        db.select(Guess).filter_by(glyph_id=glyph.id).order_by(Guess.timestamp.desc()),
+        page=page,
+        per_page=20,
+    )
+
+    return render_template("admin/view_guesses.html", glyph=glyph, guesses=guesses)
+
+
+@admin_bp.route("/glyphs/<int:glyph_id>/toggle_delete", methods=["POST"])
+@auth.login_required
+def toggle_delete_glyph(glyph_id):
+    glyph = db.get_or_404(Glyph, glyph_id)
+    glyph.is_deleted = not glyph.is_deleted
+    db.session.commit()
+
+    flash(
+        f"Glyf bol {'označený ako vymazaný' if glyph.is_deleted else 'obnovený'}",
+        "success",
+    )
+    return redirect(url_for("admin.glyphs"))
+
+
+@admin_bp.route("/glyphs/<int:glyph_id>/permanent_delete", methods=["POST"])
+@auth.login_required
+def permanent_delete_glyph(glyph_id):
+    glyph = db.get_or_404(Glyph, glyph_id)
+
+    if not glyph.is_deleted:
+        flash(
+            "Nemôžete trvalo vymazať glyf, ktorý nie je označený ako vymazaný.", "error"
+        )
+    else:
+        db.session.delete(glyph)
+        db.session.commit()
+
+        flash("Glyf bol trvalo vymazaný", "success")
+
+    return redirect(url_for("admin.glyphs"))
+
+
+@admin_bp.route("/banned_ips", methods=["GET", "POST"])
+@auth.login_required
+def banned_ips():
+    if request.method == "POST":
+        ip_address = request.form["ip_address"]
+        banned_ip = BannedIP(ip_address=ip_address)
+
+        db.session.add(banned_ip)
+        try:
+            db.session.commit()
+            flash("IP adresa bola úspešne zakázaná", "success")
+        except IntegrityError:
+            db.session.rollback()
+            flash("Táto IP adresa je už zakázaná", "error")
+
+    banned_ips = db.session.execute(
+        db.select(BannedIP).order_by(BannedIP.banned_at.desc())
+    ).scalars()
+    return render_template(
+        "admin/banned_ips.html", banned_ips=banned_ips, current_ip=get_client_ip()
+    )
+
+
+@admin_bp.route("/banned_ips/<int:banned_ip_id>/delete", methods=["POST"])
+@auth.login_required
+def delete_banned_ip(banned_ip_id):
+    banned_ip = db.get_or_404(BannedIP, banned_ip_id)
+
+    db.session.delete(banned_ip)
+    db.session.commit()
+
+    flash("IP adresa bola úspešne odstránená zo zoznamu zakázaných", "success")
+    return redirect(url_for("admin.banned_ips"))

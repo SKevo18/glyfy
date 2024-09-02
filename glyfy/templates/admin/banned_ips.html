@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% from "macros/pagination.html" import render_pagination %}
+
+{% block title %}{% trans %}Zakázané IP adresy - Glyfy{% endtrans %}{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6 text-green-700">{% trans %}Zakázané IP adresy{% endtrans %}</h1>
+
+<p class="mb-4">{% trans %}Vaša aktuálna IP adresa:{% endtrans %} <strong>{{ current_ip }}</strong></p>
+
+<form action="{{ url_for('admin.banned_ips') }}" method="POST" class="mb-6">
+    <div class="flex">
+        <input type="text" name="ip_address" placeholder="{% trans %}Zadajte IP adresu{% endtrans %}" class="flex-grow px-4 py-2 border border-gray-300 rounded-l-lg shadow-sm" required>
+        <button type="submit" class="bg-green-600 text-white py-2 px-4 rounded-r-lg shadow-md hover:bg-green-500">
+            {% trans %}Zakázať IP{% endtrans %}
+        </button>
+    </div>
+</form>
+
+{% if banned_ips.items %}
+    <table class="w-full bg-white shadow-lg rounded-lg overflow-hidden">
+        <thead class="bg-green-600 text-white">
+            <tr>
+                <th class="px-4 py-2 text-left">{% trans %}IP adresa{% endtrans %}</th>
+                <th class="px-4 py-2">{% trans %}Zakázané dňa{% endtrans %}</th>
+                <th class="px-4 py-2 text-right">{% trans %}Akcie{% endtrans %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for banned_ip in banned_ips.items %}
+            <tr class="border-t text-center">
+                <td class="px-4 py-2 text-left">{{ banned_ip.ip_address }}</td>
+                <td class="px-4 py-2'">{{ banned_ip.banned_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td class="px-4 py-2 text-right">
+                    <form action="{{ url_for('admin.delete_banned_ip', banned_ip_id=banned_ip.id) }}" method="POST" onsubmit="return confirm('{% trans %}Si si istý že chceš odstrániť túto IP adresu zo zoznamu zakázaných?{% endtrans %}');">
+                        <button type="submit" class="bg-red-600 text-white py-1 px-2 rounded shadow-md hover:bg-red-500">
+                            {% trans %}Odstrániť{% endtrans %}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {{ render_pagination(banned_ips, 'admin.banned_ips') }}
+{% else %}
+    <p class="text-center text-gray-600 mt-6">{% trans %}Momentálne nie sú žiadne zakázané IP adresy.{% endtrans %}</p>
+{% endif %}
+{% endblock %}

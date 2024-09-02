@@ -1,25 +1,33 @@
 {% extends "layout.html" %}
 
-{% block title %}{% trans %}Pridať nový znak{% endtrans %} - Glyfy{% endblock %}
+{% block title %}{% trans %}Pridať nový znak - Glyfy{% endtrans %}{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold mb-6 text-green-700">{% trans %}Pridať nový znak{% endtrans %}</h1>
+<h1 class="text-center text-3xl font-bold mb-6 text-green-700">{% trans %}Pridať nový znak{% endtrans %}</h1>
 
-<form action="{{ url_for('admin.add_glyph') }}" method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-lg shadow-md">
+<form action="{{ url_for('admin.add_glyph') }}" method="POST" enctype="multipart/form-data" class="max-w-md mx-auto">
     <div class="mb-4">
-        <label for="glyph_id" class="block text-gray-700">{% trans %}ID znaku{% endtrans %}</label>
-        <input type="text" name="glyph_id" id="glyph_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm" required />
+        <label for="glyph_id" class="block text-gray-700 font-bold mb-2">{% trans %}ID znaku{% endtrans %}</label>
+        <input type="text" id="glyph_id" name="glyph_id" required pattern="[a-zA-Z0-9]+" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+               title="{% trans %}ID glyfu môže obsahovať iba alfanumerické znaky{% endtrans %}">
     </div>
+
     <div class="mb-4">
-        <label for="unicode" class="block text-gray-700">{% trans %}Unicode Decimálna Hodnota{% endtrans %}</label>
-        <input type="number" name="unicode" id="unicode" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm" required />
+        <label for="unicode" class="block text-gray-700 font-bold mb-2">{% trans %}Unicode{% endtrans %}</label>
+        <input type="number" id="unicode" name="unicode" required min="1" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+               title="{% trans %}Unicode hodnota musí byť kladné celé číslo väčšie ako 0{% endtrans %}">
     </div>
+
     <div class="mb-4">
-        <label for="svg_file" class="block text-gray-700">{% trans %}Nahrať SVG Súbor{% endtrans %}</label>
-        <input type="file" name="svg_file" id="svg_file" accept=".svg" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm" required />
+        <label for="svg_file" class="block text-gray-700 font-bold mb-2">{% trans %}SVG súbor{% endtrans %}</label>
+        <input type="file" id="svg_file" name="svg_file" accept=".svg" required
+               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
     </div>
-    <button type="submit" class="bg-green-600 text-white py-2 px-4 rounded shadow-md hover:bg-green-500">
-        {% trans %}Pridať Znak{% endtrans %}
+
+    <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+        {% trans %}Pridať znak{% endtrans %}
     </button>
 </form>
 {% endblock %}
