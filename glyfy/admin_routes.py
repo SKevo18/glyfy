@@ -10,7 +10,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from glyfy.app import db
+from glyfy.app import DB
 from glyfy.models import Glyph, Guess, BannedIP, Vote
 from glyfy.utils import get_client_ip
 
@@ -40,7 +40,7 @@ def verify_password(username, password) -> t.Optional[str]:
 @AUTH.login_required
 def glyphs():
     page = request.args.get("page", 1, type=int)
-    glyphs = db.paginate(db.select(Glyph).order_by(Glyph.unicode), page=page)
+    glyphs = DB.paginate(DB.select(Glyph).order_by(Glyph.unicode), page=page)
     return render_template("admin/glyphs.html", glyphs=glyphs)
 
 
@@ -71,14 +71,14 @@ def add_glyph():
             svg_file.save(filepath)
 
         try:
-            db.session.add(glyph)
-            db.session.commit()
+            DB.session.add(glyph)
+            DB.session.commit()
 
             flash("Symbol bol úspešne pridaný", "success")
             return redirect(url_for("admin.glyphs"))
 
         except IntegrityError as e:
-            db.session.rollback()
+            DB.session.rollback()
 
             if "glyph_id" in str(e.orig):
                 flash("Chyba: ID glyfu už existuje. Prosím, zvoľte iné ID.", "error")
@@ -96,7 +96,7 @@ def add_glyph():
 @ADMIN_BP.route("/glyphs/edit/<int:glyph_id>", methods=["GET", "POST"])
 @AUTH.login_required
 def edit_glyph(glyph_id):
-    glyph = db.get_or_404(Glyph, glyph_id)
+    glyph = DB.get_or_404(Glyph, glyph_id)
 
     if request.method == "POST":
         glyph.glyph_id = request.form["glyph_id"]
@@ -121,13 +121,13 @@ def edit_glyph(glyph_id):
             svg_file.save(new_filepath)
 
         try:
-            db.session.commit()
+            DB.session.commit()
 
             flash("Symbol bol úspešne upravený", "success")
             return redirect(url_for("admin.glyphs"))
 
         except IntegrityError as e:
-            db.session.rollback()
+            DB.session.rollback()
 
             if "glyph_id" in str(e.orig):
                 flash("Chyba: ID glyfu už existuje. Prosím, zvoľte iné ID.", "error")
@@ -145,11 +145,11 @@ def edit_glyph(glyph_id):
 @ADMIN_BP.route("/glyphs/<int:glyph_id>/guesses")
 @AUTH.login_required
 def view_guesses(glyph_id):
-    glyph = db.get_or_404(Glyph, glyph_id)
+    glyph = DB.get_or_404(Glyph, glyph_id)
     page = request.args.get("page", 1, type=int)
 
-    guesses = db.paginate(
-        db.select(Guess)
+    guesses = DB.paginate(
+        DB.select(Guess)
         .filter_by(glyph_id=glyph.id)
         .outerjoin(Vote)
         .group_by(Guess.id)
@@ -203,16 +203,16 @@ def banned_ips():
         ip_address = request.form["ip_address"]
         banned_ip = BannedIP(ip_address=ip_address)
 
-        db.session.add(banned_ip)
+        DB.session.add(banned_ip)
         try:
-            db.session.commit()
+            DB.session.commit()
             flash("IP adresa bola úspešne zakázaná", "success")
         except IntegrityError:
-            db.session.rollback()
+            DB.session.rollback()
             flash("Táto IP adresa je už zakázaná", "error")
 
     page = request.args.get("page", 1, type=int)
-    banned_ips = db.paginate(db.select(BannedIP), page=page, per_page=20)
+    banned_ips = DB.paginate(DB.select(BannedIP), page=page, per_page=20)
 
     return render_template(
         "admin/banned_ips.html", banned_ips=banned_ips, current_ip=get_client_ip()
@@ -222,17 +222,17 @@ def banned_ips():
 @ADMIN_BP.route("/banned_ips/<int:banned_ip_id>/delete", methods=["POST"])
 @AUTH.login_required
 def delete_banned_ip(banned_ip_id):
-    banned_ip = db.get_or_404(BannedIP, banned_ip_id)
+    banned_ip = DB.get_or_404(BannedIP, banned_ip_id)
 
-    db.session.delete(banned_ip)
-    db.session.commit()
+    DB.session.delete(banned_ip)
+    DB.session.commit()
 
     flash("IP adresa bola úspešne odstránená zo zoznamu zakázaných", "success")
     return redirect(url_for("admin.banned_ips"))
 
 
 def toggle_delete_or_remove(model, item_id, permanent=False):
-    item = db.get_or_404(model, item_id)
+    item = DB.get_or_404(model, item_id)
 
     if permanent:
         if not item.is_deleted:
@@ -242,7 +242,7 @@ def toggle_delete_or_remove(model, item_id, permanent=False):
             )
             return False
 
-        db.session.delete(item)
+        DB.session.delete(item)
         flash("Položka bola trvalo vymazaná", "success")
     else:
         item.is_deleted = not item.is_deleted
@@ -250,5 +250,5 @@ def toggle_delete_or_remove(model, item_id, permanent=False):
 
         flash(f"Položka bola {action}", "success")
 
-    db.session.commit()
+    DB.session.commit()
     return True

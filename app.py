@@ -1,7 +1,7 @@
-from glyfy.app import app, db
+from glyfy.app import APP, DB
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
+    with APP.app_context():
+        DB.create_all()
 
-    app.run(debug=True, port=5051)
+    APP.run(debug=True, port=5051)

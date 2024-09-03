@@ -1,0 +1,24 @@
+# Vlož do `/etc/systemd/system/glyfy.service`
+#
+# `systemctl daemon-reload`
+# `systemctl enable glyfy.service`
+# `systemctl start glyfy.service`
+[Install]
+WantedBy=multi-user.target
+
+[Unit]
+Description=Glyfy daemon
+After=network.target
+
+[Service]
+Type=simple
+
+# FIXME: Zmeň na správnu cestu k `start.sh`:
+ExecStart=./start.sh
+
+Restart=on-failure
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target
