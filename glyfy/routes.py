@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, flash, url_for,
 from unidecode import unidecode
 
 from glyfy.app import db
-from glyfy.models import Glyph, Guess, BannedIP
+from glyfy.models import Glyph, Guess, BannedIP, Vote
 
 from glyfy.utils import get_client_ip
 
@@ -40,13 +40,41 @@ def view_glyph(glyph_id):
             guess_text = request.form["guess"]
             normalized_guess = normalize_guess(guess_text)
 
-            guess = Guess(
-                glyph=glyph, guess_text=normalized_guess, ip_address=ip_address
-            )
-            db.session.add(guess)
-            db.session.commit()
+            existing_guess = db.session.execute(
+                db.select(Guess).filter_by(glyph_id=glyph.id, guess_text=normalized_guess)
+            ).scalar_one_or_none()
 
-            flash("Váš odhad bol odoslaný!", "success")
+            if existing_guess:
+                existing_vote = db.session.execute(
+                    db.select(Vote).filter_by(guess_id=existing_guess.id, ip_address=ip_address)
+                ).scalar_one_or_none()
+
+                if not existing_vote:
+                    new_vote = Vote(
+                        guess_id=existing_guess.id,
+                        ip_address=ip_address,
+                        is_upvote=True
+                    )
+
+                    db.session.add(new_vote)
+                    db.session.commit()
+                    flash("Existujúci odhad bol automaticky upvote-nutý!", "success")
+                else:
+                    flash("Tento odhad už existuje a vy ste ho už hodnotili.", "info")
+            else:
+                guess = Guess(
+                    glyph=glyph,
+                    guess_text=normalized_guess,
+                    ip_address=ip_address
+                )
+                db.session.add(guess)
+                db.session.commit()
+
+                new_vote = Vote(guess_id=guess.id, ip_address=ip_address, is_upvote=True)
+                db.session.add(new_vote)
+                db.session.commit()
+
+                flash("Váš odhad bol odoslaný a automaticky upvote-nutý!", "success")
 
         return redirect(url_for("main.view_glyph", glyph_id=glyph.glyph_id))
 
@@ -76,9 +104,37 @@ def delete_guess(guess_id):
     return redirect(url_for("main.view_glyph", glyph_id=guess.glyph.glyph_id))
 
 
+@bp.route("/guess/<int:guess_id>/vote", methods=["POST"])
+def vote_guess(guess_id):
+    guess = db.get_or_404(Guess, guess_id)
+    ip_address = get_client_ip()
+    is_upvote = request.form.get("vote_type") == "upvote"
+
+    existing_vote = db.session.execute(
+        db.select(Vote).filter_by(guess_id=guess_id, ip_address=ip_address)
+    ).scalar_one_or_none()
+
+    if existing_vote:
+        if existing_vote.is_upvote == is_upvote:
+            db.session.delete(existing_vote)
+            flash("Váš hlas bol odstránený", "success")
+        else:
+            existing_vote.is_upvote = is_upvote
+            flash("Váš hlas bol zmenený", "success")
+    else:
+        new_vote = Vote(guess_id=guess_id, ip_address=ip_address, is_upvote=is_upvote)
+        db.session.add(new_vote)
+        flash("Váš hlas bol zaznamenaný", "success")
+
+    db.session.commit()
+    return redirect(url_for("main.view_glyph", glyph_id=guess.glyph.glyph_id))
+
+
 def normalize_guess(text):
     text = text.lower()
+    text = text.strip()
     text = unidecode(text)
-    text = re.sub(r"[^ a-z0-9]", "", text)
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'[^ a-z0-9]', '', text)
 
     return text

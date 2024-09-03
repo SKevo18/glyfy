@@ -3,6 +3,7 @@ import os
 import re
 
 from pathlib import Path
+from sqlalchemy import case, func
 from sqlalchemy.exc import IntegrityError
 
 from flask import Blueprint, render_template, redirect, url_for, request, flash
@@ -10,7 +11,7 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from glyfy.app import db
-from glyfy.models import Glyph, Guess, BannedIP
+from glyfy.models import Glyph, Guess, BannedIP, Vote
 from glyfy.utils import get_client_ip
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -99,7 +100,16 @@ def edit_glyph(glyph_id):
 
     if request.method == "POST":
         glyph.glyph_id = request.form["glyph_id"]
-        glyph.unicode = request.form["unicode"]
+
+        try:
+            unicode = int(request.form["unicode"])
+            if unicode <= 0:
+                raise ValueError
+        except ValueError:
+            flash("Unicode hodnota musí byť kladné celé číslo väčšie ako 0.", "error")
+            return render_template("admin/edit_glyph.html", glyph=glyph)
+
+        glyph.unicode = unicode
 
         svg_file = request.files["svg_file"]
         if svg_file and svg_file.filename:
@@ -132,22 +142,6 @@ def edit_glyph(glyph_id):
     return render_template("admin/edit_glyph.html", glyph=glyph)
 
 
-@admin_bp.route("/glyphs/delete/<int:glyph_id>", methods=["POST"])
-@auth.login_required
-def delete_glyph(glyph_id):
-    glyph = db.get_or_404(Glyph, glyph_id)
-
-    asset = GLYPHS_PATH / f"{glyph.glyph_id}.svg"
-    if asset.exists():
-        asset.unlink()
-
-    db.session.delete(glyph)
-    db.session.commit()
-
-    flash("Symbol bol úspešne vymazaný", "success")
-    return redirect(url_for("admin.glyphs"))
-
-
 @admin_bp.route("/glyphs/<int:glyph_id>/guesses")
 @auth.login_required
 def view_guesses(glyph_id):
@@ -155,7 +149,12 @@ def view_guesses(glyph_id):
     page = request.args.get("page", 1, type=int)
 
     guesses = db.paginate(
-        db.select(Guess).filter_by(glyph_id=glyph.id).order_by(Guess.timestamp.desc()),
+        db.select(Guess)
+        .filter_by(glyph_id=glyph.id)
+        .outerjoin(Vote)
+        .group_by(Guess.id)
+        .order_by(func.sum(case((Vote.is_upvote, 1), else_=-1)).desc().nulls_last())
+        .order_by(Guess.timestamp.desc()),
         page=page,
         per_page=20,
     )
@@ -166,33 +165,35 @@ def view_guesses(glyph_id):
 @admin_bp.route("/glyphs/<int:glyph_id>/toggle_delete", methods=["POST"])
 @auth.login_required
 def toggle_delete_glyph(glyph_id):
-    glyph = db.get_or_404(Glyph, glyph_id)
-    glyph.is_deleted = not glyph.is_deleted
-    db.session.commit()
+    toggle_delete_or_remove(Glyph, glyph_id)
 
-    flash(
-        f"Glyf bol {'označený ako vymazaný' if glyph.is_deleted else 'obnovený'}",
-        "success",
-    )
     return redirect(url_for("admin.glyphs"))
 
 
 @admin_bp.route("/glyphs/<int:glyph_id>/permanent_delete", methods=["POST"])
 @auth.login_required
 def permanent_delete_glyph(glyph_id):
-    glyph = db.get_or_404(Glyph, glyph_id)
+    if toggle_delete_or_remove(Glyph, glyph_id, permanent=True):
+        return redirect(url_for("admin.glyphs"))
 
-    if not glyph.is_deleted:
-        flash(
-            "Nemôžete trvalo vymazať glyf, ktorý nie je označený ako vymazaný.", "error"
-        )
-    else:
-        db.session.delete(glyph)
-        db.session.commit()
+    return redirect(url_for("admin.view_guesses", glyph_id=glyph_id))
 
-        flash("Glyf bol trvalo vymazaný", "success")
 
-    return redirect(url_for("admin.glyphs"))
+@admin_bp.route("/guesses/<int:guess_id>/toggle_delete", methods=["POST"])
+@auth.login_required
+def toggle_delete_guess(guess_id):
+    toggle_delete_or_remove(Guess, guess_id)
+
+    return redirect(request.referrer)
+
+
+@admin_bp.route("/guesses/<int:guess_id>/permanent_delete", methods=["POST"])
+@auth.login_required
+def permanent_delete_guess(guess_id):
+    if toggle_delete_or_remove(Guess, guess_id, permanent=True):
+        return redirect(request.referrer)
+
+    return redirect(request.referrer)
 
 
 @admin_bp.route("/banned_ips", methods=["GET", "POST"])
@@ -228,3 +229,26 @@ def delete_banned_ip(banned_ip_id):
 
     flash("IP adresa bola úspešne odstránená zo zoznamu zakázaných", "success")
     return redirect(url_for("admin.banned_ips"))
+
+
+def toggle_delete_or_remove(model, item_id, permanent=False):
+    item = db.get_or_404(model, item_id)
+
+    if permanent:
+        if not item.is_deleted:
+            flash(
+                "Nemôžete trvalo vymazať položku, ktorá nie je označená ako vymazaná.",
+                "error",
+            )
+            return False
+
+        db.session.delete(item)
+        flash("Položka bola trvalo vymazaná", "success")
+    else:
+        item.is_deleted = not item.is_deleted
+        action = "označená ako vymazaná" if item.is_deleted else "obnovená"
+
+        flash(f"Položka bola {action}", "success")
+
+    db.session.commit()
+    return True

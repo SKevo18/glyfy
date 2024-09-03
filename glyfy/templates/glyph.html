@@ -35,6 +35,24 @@
                 <span class="text-gray-900">{{ guess.guess_text }}</span>
                 <div class="flex items-center">
                     <span class="text-sm text-gray-500 mr-2">{{ guess.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                    <span class="text-sm text-gray-500 mr-2">Skóre: {{ guess.net_votes }}</span>
+                    {% set user_vote = guess.votes|selectattr('ip_address', 'equalto', user_ip)|first %}
+                    <form action="{{ url_for('main.vote_guess', guess_id=guess.id) }}" method="POST" class="inline-block mr-2">
+                        <input type="hidden" name="vote_type" value="upvote">
+                        <button type="submit" class="text-green-600 hover:text-green-800 {% if user_vote and user_vote.is_upvote %}opacity-50 cursor-not-allowed{% endif %}" {% if user_vote and user_vote.is_upvote %}disabled{% endif %}>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                            </svg>
+                        </button>
+                    </form>
+                    <form action="{{ url_for('main.vote_guess', guess_id=guess.id) }}" method="POST" class="inline-block mr-2">
+                        <input type="hidden" name="vote_type" value="downvote">
+                        <button type="submit" class="text-red-600 hover:text-red-800 {% if user_vote and not user_vote.is_upvote %}opacity-50 cursor-not-allowed{% endif %}" {% if user_vote and not user_vote.is_upvote %}disabled{% endif %}>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </form>
                     {% if guess.ip_address == user_ip %}
                         <form action="{{ url_for('main.delete_guess', guess_id=guess.id) }}" method="POST" onsubmit="return confirm('{% trans %}Si si istý že chceš zmazať tento odhad?{% endtrans %}');">
                             <button type="submit" class="text-red-600 hover:text-red-800">
