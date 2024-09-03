@@ -7,4 +7,4 @@ if [ ! -d ../.venv ]; then
 fi
 
 export PYTHONPATH=$(pwd)
-../.venv/bin/hypercorn app:APP -m 007 -w 4 --bind=unix:server.sock
+../.venv/bin/gunicorn app:APP -m 007 -w 4 --bind=unix:server.sock
