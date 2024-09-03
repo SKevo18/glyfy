@@ -6,10 +6,10 @@
     <title>{% block title %}Glyfy{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 text-gray-800 h-full">
+<body class="flex flex-col min-h-screen bg-gray-100 text-gray-800">
     {% include 'partials/header.html' %}
 
-    <div class="container p-6 mx-auto max-w-full md:max-w-4xl lg:max-w-5xl xl:max-w-6xl min-h-full">
+    <div class="flex-1 container p-6 mx-auto max-w-full md:max-w-4xl lg:max-w-5xl xl:max-w-6xl">
         {% block content %}{% endblock %}
     </div>
 
