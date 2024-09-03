@@ -36,6 +36,11 @@ def verify_password(username, password) -> t.Optional[str]:
     return username if user and check_password_hash(user, password) else None
 
 
+@ADMIN_BP.route("/")
+def redirect_admin():
+    return redirect(url_for("admin.glyphs"))
+
+
 @ADMIN_BP.route("/glyphs")
 @AUTH.login_required
 def glyphs():
