@@ -4,7 +4,10 @@ from flask_babel import Babel
 
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from dotenv import load_dotenv
 from config import Config
+
+load_dotenv()
 
 APP = Flask(__name__)
 APP.config.from_object(Config)
