@@ -21,6 +21,11 @@ def index():
     return render_template("index.html", glyphs=glyphs)
 
 
+@USER_BP.route("/a")
+def redirect_admin_short():
+    return redirect(url_for("admin.glyphs"))
+
+
 @USER_BP.route("/glyph/<glyph_id>", methods=["GET", "POST"])
 def view_glyph(glyph_id):
     glyph = DB.one_or_404(
