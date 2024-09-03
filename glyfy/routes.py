@@ -8,10 +8,10 @@ from glyfy.models import Glyph, Guess, BannedIP, Vote
 
 from glyfy.utils import get_client_ip
 
-bp = Blueprint("main", __name__)
+USER_BP = Blueprint("main", __name__)
 
 
-@bp.route("/")
+@USER_BP.route("/")
 def index():
     page = request.args.get("page", 1, type=int)
     glyphs = db.paginate(
@@ -21,7 +21,7 @@ def index():
     return render_template("index.html", glyphs=glyphs)
 
 
-@bp.route("/glyph/<glyph_id>", methods=["GET", "POST"])
+@USER_BP.route("/glyph/<glyph_id>", methods=["GET", "POST"])
 def view_glyph(glyph_id):
     glyph = db.one_or_404(
         db.select(Glyph).filter_by(glyph_id=glyph_id, is_deleted=False)
@@ -95,7 +95,7 @@ def view_glyph(glyph_id):
     )
 
 
-@bp.route("/guess/<int:guess_id>/delete", methods=["POST"])
+@USER_BP.route("/guess/<int:guess_id>/delete", methods=["POST"])
 def delete_guess(guess_id):
     guess = db.get_or_404(Guess, guess_id)
     if guess.ip_address != get_client_ip():
@@ -108,7 +108,7 @@ def delete_guess(guess_id):
     return redirect(url_for("main.view_glyph", glyph_id=guess.glyph.glyph_id))
 
 
-@bp.route("/guess/<int:guess_id>/vote", methods=["POST"])
+@USER_BP.route("/guess/<int:guess_id>/vote", methods=["POST"])
 def vote_guess(guess_id):
     guess = db.get_or_404(Guess, guess_id)
     ip_address = get_client_ip()

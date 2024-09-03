@@ -13,8 +13,8 @@ db = SQLAlchemy(app, model_class=Base)
 babel = Babel(app)
 
 # circular
-from glyfy.routes import bp  # noqa: E402
-from glyfy.admin_routes import admin_bp  # noqa: E402
+from glyfy.routes import USER_BP  # noqa: E402
+from glyfy.admin_routes import ADMIN_BP  # noqa: E402
 
-app.register_blueprint(bp)
-app.register_blueprint(admin_bp)
+app.register_blueprint(USER_BP)
+app.register_blueprint(ADMIN_BP)

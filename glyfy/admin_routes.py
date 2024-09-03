@@ -14,8 +14,10 @@ from glyfy.app import db
 from glyfy.models import Glyph, Guess, BannedIP, Vote
 from glyfy.utils import get_client_ip
 
-admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
-auth = HTTPBasicAuth()
+ADMIN_BP = Blueprint("admin", __name__, url_prefix="/admin")
+AUTH = HTTPBasicAuth()
+
+GLYPHS_PATH = Path(__file__).parent / "static" / "glyphs"
 
 admin_heslo = os.getenv("ADMIN_HESLO")
 if not admin_heslo:
@@ -23,29 +25,27 @@ if not admin_heslo:
         "`ADMIN_HESLO` nie je v env premenných, nastav ho v súbore `.env`."
     )
 
-USERS = {
+users = {
     "admin": generate_password_hash(admin_heslo),
 }
 
-GLYPHS_PATH = Path(__file__).parent / "static" / "glyphs"
 
-
-@auth.verify_password
+@AUTH.verify_password
 def verify_password(username, password) -> t.Optional[str]:
-    user = USERS.get(username)
+    user = users.get(username)
     return username if user and check_password_hash(user, password) else None
 
 
-@admin_bp.route("/glyphs")
-@auth.login_required
+@ADMIN_BP.route("/glyphs")
+@AUTH.login_required
 def glyphs():
     page = request.args.get("page", 1, type=int)
     glyphs = db.paginate(db.select(Glyph).order_by(Glyph.unicode), page=page)
     return render_template("admin/glyphs.html", glyphs=glyphs)
 
 
-@admin_bp.route("/glyphs/add", methods=["GET", "POST"])
-@auth.login_required
+@ADMIN_BP.route("/glyphs/add", methods=["GET", "POST"])
+@AUTH.login_required
 def add_glyph():
     if request.method == "POST":
         glyph_id = request.form["glyph_id"]
@@ -93,8 +93,8 @@ def add_glyph():
     return render_template("admin/add_glyph.html")
 
 
-@admin_bp.route("/glyphs/edit/<int:glyph_id>", methods=["GET", "POST"])
-@auth.login_required
+@ADMIN_BP.route("/glyphs/edit/<int:glyph_id>", methods=["GET", "POST"])
+@AUTH.login_required
 def edit_glyph(glyph_id):
     glyph = db.get_or_404(Glyph, glyph_id)
 
@@ -142,8 +142,8 @@ def edit_glyph(glyph_id):
     return render_template("admin/edit_glyph.html", glyph=glyph)
 
 
-@admin_bp.route("/glyphs/<int:glyph_id>/guesses")
-@auth.login_required
+@ADMIN_BP.route("/glyphs/<int:glyph_id>/guesses")
+@AUTH.login_required
 def view_guesses(glyph_id):
     glyph = db.get_or_404(Glyph, glyph_id)
     page = request.args.get("page", 1, type=int)
@@ -162,16 +162,16 @@ def view_guesses(glyph_id):
     return render_template("admin/view_guesses.html", glyph=glyph, guesses=guesses)
 
 
-@admin_bp.route("/glyphs/<int:glyph_id>/toggle_delete", methods=["POST"])
-@auth.login_required
+@ADMIN_BP.route("/glyphs/<int:glyph_id>/toggle_delete", methods=["POST"])
+@AUTH.login_required
 def toggle_delete_glyph(glyph_id):
     toggle_delete_or_remove(Glyph, glyph_id)
 
     return redirect(url_for("admin.glyphs"))
 
 
-@admin_bp.route("/glyphs/<int:glyph_id>/permanent_delete", methods=["POST"])
-@auth.login_required
+@ADMIN_BP.route("/glyphs/<int:glyph_id>/permanent_delete", methods=["POST"])
+@AUTH.login_required
 def permanent_delete_glyph(glyph_id):
     if toggle_delete_or_remove(Glyph, glyph_id, permanent=True):
         return redirect(url_for("admin.glyphs"))
@@ -179,16 +179,16 @@ def permanent_delete_glyph(glyph_id):
     return redirect(url_for("admin.view_guesses", glyph_id=glyph_id))
 
 
-@admin_bp.route("/guesses/<int:guess_id>/toggle_delete", methods=["POST"])
-@auth.login_required
+@ADMIN_BP.route("/guesses/<int:guess_id>/toggle_delete", methods=["POST"])
+@AUTH.login_required
 def toggle_delete_guess(guess_id):
     toggle_delete_or_remove(Guess, guess_id)
 
     return redirect(request.referrer)
 
 
-@admin_bp.route("/guesses/<int:guess_id>/permanent_delete", methods=["POST"])
-@auth.login_required
+@ADMIN_BP.route("/guesses/<int:guess_id>/permanent_delete", methods=["POST"])
+@AUTH.login_required
 def permanent_delete_guess(guess_id):
     if toggle_delete_or_remove(Guess, guess_id, permanent=True):
         return redirect(request.referrer)
@@ -196,8 +196,8 @@ def permanent_delete_guess(guess_id):
     return redirect(request.referrer)
 
 
-@admin_bp.route("/banned_ips", methods=["GET", "POST"])
-@auth.login_required
+@ADMIN_BP.route("/banned_ips", methods=["GET", "POST"])
+@AUTH.login_required
 def banned_ips():
     if request.method == "POST":
         ip_address = request.form["ip_address"]
@@ -219,8 +219,8 @@ def banned_ips():
     )
 
 
-@admin_bp.route("/banned_ips/<int:banned_ip_id>/delete", methods=["POST"])
-@auth.login_required
+@ADMIN_BP.route("/banned_ips/<int:banned_ip_id>/delete", methods=["POST"])
+@AUTH.login_required
 def delete_banned_ip(banned_ip_id):
     banned_ip = db.get_or_404(BannedIP, banned_ip_id)
 
