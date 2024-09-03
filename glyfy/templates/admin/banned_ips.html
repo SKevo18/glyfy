@@ -6,8 +6,11 @@
 {% block content %}
 <h1 class="text-3xl font-bold mb-6 text-green-700">{% trans %}Zakázané IP adresy{% endtrans %}</h1>
 
-<p class="mb-4">{% trans %}Vaša aktuálna IP adresa:{% endtrans %} <strong>{{ current_ip }}</strong></p>
+<a href="{{ url_for('admin.glyphs') }}" class="inline-block bg-green-600 text-white py-2 px-4 rounded shadow-md hover:bg-green-500 mb-6">
+    {% trans %}Späť na zoznam znakov{% endtrans %}
+</a>
 
+<p class="mb-4">{% trans %}Vaša aktuálna IP adresa:{% endtrans %} <strong>{{ current_ip }}</strong></p>
 <form action="{{ url_for('admin.banned_ips') }}" method="POST" class="mb-6">
     <div class="flex">
         <input type="text" name="ip_address" placeholder="{% trans %}Zadajte IP adresu{% endtrans %}" class="flex-grow px-4 py-2 border border-gray-300 rounded-l-lg shadow-sm" required>

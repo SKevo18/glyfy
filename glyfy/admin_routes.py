@@ -113,7 +113,7 @@ def edit_glyph(glyph_id):
 
         svg_file = request.files["svg_file"]
         if svg_file and svg_file.filename:
-            old_filepath = GLYPHS_PATH / f"{glyph.glyph_id}.svg"
+            old_filepath = GLYPHS_PATH / f"{request.form["glyph_id"]}.svg"
             if old_filepath.exists():
                 old_filepath.unlink()
 
@@ -211,9 +211,9 @@ def banned_ips():
             db.session.rollback()
             flash("Táto IP adresa je už zakázaná", "error")
 
-    banned_ips = db.session.execute(
-        db.select(BannedIP).order_by(BannedIP.banned_at.desc())
-    ).scalars()
+    page = request.args.get("page", 1, type=int)
+    banned_ips = db.paginate(db.select(BannedIP), page=page, per_page=20)
+
     return render_template(
         "admin/banned_ips.html", banned_ips=banned_ips, current_ip=get_client_ip()
     )
