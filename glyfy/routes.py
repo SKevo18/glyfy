@@ -41,19 +41,23 @@ def view_glyph(glyph_id):
             normalized_guess = normalize_guess(guess_text)
 
             existing_guess = db.session.execute(
-                db.select(Guess).filter_by(glyph_id=glyph.id, guess_text=normalized_guess)
+                db.select(Guess).filter_by(
+                    glyph_id=glyph.id, guess_text=normalized_guess
+                )
             ).scalar_one_or_none()
 
             if existing_guess:
                 existing_vote = db.session.execute(
-                    db.select(Vote).filter_by(guess_id=existing_guess.id, ip_address=ip_address)
+                    db.select(Vote).filter_by(
+                        guess_id=existing_guess.id, ip_address=ip_address
+                    )
                 ).scalar_one_or_none()
 
                 if not existing_vote:
                     new_vote = Vote(
                         guess_id=existing_guess.id,
                         ip_address=ip_address,
-                        is_upvote=True
+                        is_upvote=True,
                     )
 
                     db.session.add(new_vote)
@@ -63,14 +67,14 @@ def view_glyph(glyph_id):
                     flash("Tento odhad už existuje a vy ste ho už hodnotili.", "info")
             else:
                 guess = Guess(
-                    glyph=glyph,
-                    guess_text=normalized_guess,
-                    ip_address=ip_address
+                    glyph=glyph, guess_text=normalized_guess, ip_address=ip_address
                 )
                 db.session.add(guess)
                 db.session.commit()
 
-                new_vote = Vote(guess_id=guess.id, ip_address=ip_address, is_upvote=True)
+                new_vote = Vote(
+                    guess_id=guess.id, ip_address=ip_address, is_upvote=True
+                )
                 db.session.add(new_vote)
                 db.session.commit()
 
@@ -134,7 +138,7 @@ def normalize_guess(text):
     text = text.lower()
     text = text.strip()
     text = unidecode(text)
-    text = re.sub(r'\s+', ' ', text)
-    text = re.sub(r'[^ a-z0-9]', '', text)
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"[^ a-z0-9]", "", text)
 
     return text
