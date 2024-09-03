@@ -4,8 +4,9 @@
 {% block title %}{% trans %}Domov - Glyfy{% endtrans %}{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold mb-6 text-green-700">{% trans %}Glyfy - Hádaj znak{% endtrans %}</h1>
+<h1 class="text-3xl font-bold mb-6 text-green-700">{% trans %}Hádaj, čo reprezentuje symbol.{% endtrans %}</h1>
 
+{% if glyphs.items %}
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
     {% for glyph in glyphs.items %}
         <a href="{{ url_for('main.view_glyph', glyph_id=glyph.glyph_id) }}" class="bg-white p-4 shadow-lg rounded-lg hover:shadow-xl transition-shadow">
@@ -15,4 +16,7 @@
 </div>
 
 {{ render_pagination(glyphs, 'main.index') }}
+{% else %}
+    <p>{% trans %}Momentálne tu nie sú žiadne symboly na zobrazenie{% endtrans %}</p>
+{% endif %}
 {% endblock %}
